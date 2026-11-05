@@ -90,6 +90,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 /* dropzone */
 .drop { border: 2px dashed var(--aqua); border-radius: 16px; padding: 18px; text-align: center; background: var(--ice); cursor: pointer; display: grid; gap: 4px; justify-items: center; }
 .drop.over { background: var(--card); }
+.paste { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.pastebox { flex: 1; min-width: 180px; border: 1.5px dashed var(--line); border-radius: 12px; padding: 12px 14px; color: var(--muted); font-size: 15px; background: var(--card); }
+.pastebox:empty::before { content: 'Paste your screenshot here'; color: var(--muted); }
+.pastebox:focus { outline: none; border-color: var(--aqua); color: var(--ink); }
 .drop b { font: 500 22px var(--f-display); color: var(--deep); }
 .drop small { color: var(--muted); font-size: 14px; }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
@@ -565,11 +569,15 @@ function buildPDF() {
   return doc;
 }
 
+function pdfName() {
+  var label = S.mode === 'explore' ? 'My break-even' : S.offers.length > 1 ? 'Offer comparison' : (S.offers[S.offers.length - 1].label || 'Offer');
+  return 'NOP ' + label.replace(/[^\w\s-]/g, '').trim().slice(0, 40) + '.pdf';
+}
+
 async function savePDF() {
   if (!window.jspdf) throw new Error('pdf library missing');
   var doc = buildPDF();
-  var label = S.mode === 'explore' ? 'my-break-even' : (S.offers[S.offers.length - 1].label || 'offer');
-  var name = 'NOP ' + label.replace(/[^\w\s-]/g, '').trim().slice(0, 40) + '.pdf';
+  var name = pdfName();
   if (IN_CLAUDE) {
     var d = await window.claude.use('downloads');
     if (d) { await d.save({ filename: name, data: doc.output('blob') }); return 'Saved.'; }
@@ -642,7 +650,7 @@ var STEPS = {
   goal: { title: 'Your savings goal', sub: 'How much do you want to put away each month? Leave it blank if you\'re not sure.', scope: 'shared', fields: [
     { k: 'savingsMo', t: 'money', l: 'Savings goal', per: '/month', hint: 'An emergency fund, paying off debt, the next trip. For reference, a Yes leaves at least $250 a week, about $1,000 a month.' }
   ]},
-  gate: { title: 'Your results are ready', sub: 'Where should I send a copy? You\'ll see everything on the next screen too.', gate: true }
+  gate: { title: 'Your results are ready', sub: 'Where should I send your PDF? You\'ll also see everything on the next screen.', gate: true }
 };
 
 var FLOWS = {
@@ -826,7 +834,7 @@ function renderStep() {
       '<div class="field"><label for="g_first">First name</label><input type="text" id="g_first" autocomplete="given-name" required></div>' +
       '<div class="field"><label for="g_email">Email</label><input type="email" id="g_email" autocomplete="email" required></div>' +
       '<input class="hp" type="text" id="g_web" tabindex="-1" autocomplete="off" aria-hidden="true">' +
-      '<p class="hint" style="color:var(--muted);font-size:14px;margin:0">I\'ll email you your results and a couple of tips for negotiating your package. Unsubscribe anytime.</p>' +
+      '<p class="hint" style="color:var(--muted);font-size:14px;margin:0">I\'ll email you a PDF of your results and a couple of tips for negotiating your package. Unsubscribe anytime.</p>' +
       '<div class="note err" id="gateErr" hidden></div>' +
       '<div class="nav"><button type="button" class="link" id="back">Back</button><button class="btn btn-cta" type="submit">Show My Results</button></div></form>';
   } else {
@@ -897,7 +905,9 @@ function finish() {
 /* ===== Screenshot reader ===== */
 function readerHTML() {
   return '<label class="drop" id="drop" tabindex="0"><input type="file" id="shot" accept="image/png,image/jpeg,image/webp,image/gif">' +
-    '<b>Drop In a Screenshot</b><small>Tap to choose a photo, or paste a screenshot here. I\'ll fill in what I can find.</small></label>' +
+    '<b>Choose a Screenshot</b><small>Tap to pick a photo or screenshot. I\'ll fill in what I can find.</small></label>' +
+    '<div class="paste"><button type="button" class="btn btn-soft" id="pasteBtn">Paste Screenshot</button>' +
+    '<div class="pastebox" id="pasteBox" contenteditable="true" role="textbox" aria-label="Paste a screenshot here" hidden></div></div>' +
     '<div class="note" id="readNote" hidden style="margin-top:12px"></div><div class="or">or type it in</div>';
 }
 function bindReader() {
@@ -906,10 +916,34 @@ function bindReader() {
   drop.ondragover = function (e) { e.preventDefault(); drop.classList.add('over'); };
   drop.ondragleave = function () { drop.classList.remove('over'); };
   drop.ondrop = function (e) { e.preventDefault(); drop.classList.remove('over'); var f = e.dataTransfer.files[0]; if (f) readShot(f); };
-  document.onpaste = function (e) {
-    if (S.view !== 'step' || S.flow[S.i] !== 'offer') return;
-    var items = (e.clipboardData && e.clipboardData.files) || [];
-    if (items[0] && /^image\//.test(items[0].type)) { e.preventDefault(); readShot(items[0]); }
+  // Paste works three ways: Ctrl/Cmd+V anywhere on this step, the Paste button (reads the clipboard
+  // directly where the browser allows it), or long-press > Paste in the box the button reveals.
+  var fromPaste = function (e) {
+    var cd = e.clipboardData, files = (cd && cd.files) || [], f = files[0];
+    if (!f && cd && cd.items) for (var i = 0; i < cd.items.length; i++) if (/^image\//.test(cd.items[i].type)) { f = cd.items[i].getAsFile(); break; }
+    if (f && /^image\//.test(f.type)) { e.preventDefault(); readShot(f); return true; }
+    return false;
+  };
+  document.onpaste = function (e) { if (S.view === 'step' && S.flow[S.i] === 'offer') fromPaste(e); };
+  var box = $('#pasteBox');
+  box.onpaste = function (e) { e.stopPropagation(); if (!fromPaste(e)) { e.preventDefault(); note('warn', 'That wasn\'t a picture. Take a screenshot first, then paste it here.'); } };
+  box.oninput = function () { box.textContent = ''; };
+  $('#pasteBtn').onclick = async function () {
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.read) throw new Error('no read');
+      var items = await navigator.clipboard.read();
+      for (var i = 0; i < items.length; i++) {
+        var type = items[i].types.find(function (t) { return /^image\//.test(t); });
+        if (type) { var blob = await items[i].getType(type); readShot(new File([blob], 'screenshot.png', { type: type })); return; }
+      }
+      note('warn', 'Your clipboard doesn\'t have a picture in it. Take a screenshot first, then tap Paste Screenshot.');
+    } catch (err) {
+      box.hidden = false; box.focus();
+      box.setAttribute('data-ph', '1');
+      note('ok', /Mac|Win|Linux/.test(navigator.platform) && !/Mobi|Android|iP(hone|ad)/.test(navigator.userAgent)
+        ? 'Press Ctrl+V (or Cmd+V on a Mac) to paste your screenshot.'
+        : 'Press and hold in the box, then tap Paste.');
+    }
   };
 }
 function note(cls, msg) { var n = $('#readNote'); if (!n) return; n.className = 'note ' + cls; n.textContent = msg; n.hidden = !msg; }
@@ -1016,7 +1050,15 @@ function submitGate(e) {
   S.lead = { first: first, email: email };
   S.flow.pop();
   finish();
-  sendLead(Object.assign({ kind: 'results', first: first, email: email, mode: S.mode, summary: summary() }, headline()));
+  sendLead(Object.assign({ kind: 'results', first: first, email: email, mode: S.mode, summary: summary() }, headline(), pdfPayload()));
+}
+
+function pdfPayload() {
+  try {
+    if (!window.jspdf) return {};
+    var doc = buildPDF();
+    return { pdf: doc.output('datauristring').split(',')[1], pdfName: pdfName() };
+  } catch (e) { return {}; }
 }
 
 /* ===== Results ===== */
@@ -1205,8 +1247,8 @@ function actionsHTML() {
   return '<section class="card"><h3>Keep these numbers</h3><div class="actions" style="margin-top:12px">' +
     (S.mode !== 'explore' ? '<button class="btn btn-soft" id="another">Compare Another Offer</button>' : '') +
     '<button class="btn btn-soft" id="copy">Copy Results</button>' +
-    '<button class="btn btn-soft" id="dl">Save as PDF</button>' +
-    (top ? '<button class="btn btn-soft" id="print">Print</button>' : '') +
+    (S.lead && !DESK ? '<button class="btn btn-soft" id="mail">Email Me This PDF</button>' : '<button class="btn btn-soft" id="dl">Save as PDF</button>') +
+    (top && DESK ? '<button class="btn btn-soft" id="print">Print</button>' : '') +
     '<button class="btn btn-soft" id="edit">Change My Answers</button>' +
     '</div><div class="note ok" id="actNote" hidden style="margin-top:12px"></div>' +
     '<div style="margin-top:12px"><button class="link" id="restart">Start over with a new budget</button></div></section>';
@@ -1236,7 +1278,13 @@ function bindResult() {
     var done = function () { actNote('Copied. Paste it into a text or a note.'); };
     try { navigator.clipboard.writeText(text).then(done, function () { showText(text); }); } catch (e) { showText(text); }
   };
-  q('dl').onclick = async function () {
+  if (q('mail')) q('mail').onclick = function () {
+    var btn = this; btn.disabled = true;
+    if (!CONFIG.leadUrl) { actNote('Email isn\'t set up yet.'); btn.disabled = false; return; }
+    sendLead(Object.assign({ kind: 'results', repeat: true, first: S.lead.first, email: S.lead.email, mode: S.mode, summary: summary() }, headline(), pdfPayload()))
+      .then(function () { actNote('Sent to ' + S.lead.email + '. It should land in a minute or two. Check spam if you don\'t see it.'); setTimeout(function () { btn.disabled = false; }, 4000); });
+  };
+  if (q('dl')) q('dl').onclick = async function () {
     var btn = this; btn.disabled = true;
     try { actNote(await savePDF()); }
     catch (e) { if (!(e && e.code === 'cancelled')) actNote('I couldn\'t make the PDF here. Use Copy Results instead.'); }
