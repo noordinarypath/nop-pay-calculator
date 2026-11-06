@@ -12,7 +12,7 @@ const PROMPT = 'This image is a travel healthcare (travel nurse) pay package or 
   '"weekly_stipends": number (all tax-free weekly stipends added together, whatever the agency calls them: housing, lodging, M&IE, per diem, meals; convert daily or monthly amounts to weekly), ' +
   '"weekly_gross": number (total weekly pay including stipends), "contract_weeks": number, ' +
   '"travel_pay": number (total tax-free travel stipend or reimbursement for the contract, add first and last check together), "bonus": number (total taxable sign-on, completion or extension bonuses), "state": "two-letter US state code of the assignment", ' +
-  '"city": string (city of the facility), "zip": "5-digit ZIP of the facility if shown", "start_date": "YYYY-MM-DD", "specialty": string, "notes": string (one short sentence about anything unusual, like a blended rate only)}';
+  '"city": string (city of the facility), "zip": "5-digit ZIP of the facility if shown", "start_date": "YYYY-MM-DD", "specialty": string, "agency": string (the staffing agency or company name, from a logo, header, signature or email address), "recruiter_contact": string (the recruiter\'s name, phone and email if shown, joined with commas), "notes": string (one short sentence about anything unusual, like a blended rate only)}';
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });

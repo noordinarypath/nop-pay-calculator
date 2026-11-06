@@ -504,6 +504,7 @@ function buildPDF() {
       font(8.5); color(PDFC.muted); doc.text(k[1], x + 10, y + 41);
     });
     y += 66;
+    if (agencyLine(o)) para('Agency: ' + agencyLine(o), 10, PDFC.ink, 6);
     if (o.perks) para('Extra perks (not counted in the numbers): ' + o.perks, 10, PDFC.ink, 6);
     var tips = listFrom(gapHTML(r2, a2));
     if (tips.length) {
@@ -615,6 +616,7 @@ var STATE_OPTS = Object.keys(STATES).sort(function (a, b) { return STATES[a].n.l
 var STEPS = {
   offer: { title: 'The offer', sub: 'Screenshot the pay package and I\'ll pull the numbers, or type them in.', scope: 'offer', reader: true, fields: [
     { k: 'label', t: 'text', l: 'Name this offer', ph: 'e.g. Tucson ICU nights', opt: true },
+    { pair: [{ k: 'agency', t: 'text', l: 'Agency', ph: 'e.g. Atlas MedStaff', opt: true }, { k: 'contact', t: 'text', l: 'Recruiter contact', ph: 'Name, phone or email', opt: true }] },
     { pair: [{ k: 'city', t: 'text', l: 'City', ph: 'e.g. Omaha' }, { k: 'state', t: 'state', l: 'State' }] },
     { pair: [{ k: 'rate', t: 'money', l: 'Rate for regular hours', per: '/hr', req: true }, { k: 'hours', t: 'num', l: 'Hours per week', def: 36 }] },
     { pair: [{ k: 'meals', t: 'money', l: 'Meals stipend', per: '/week' }, { k: 'housing', t: 'money', l: 'Housing stipend', per: '/week' }] },
@@ -954,7 +956,7 @@ function bindReader() {
 function note(cls, msg) { var n = $('#readNote'); if (!n) return; n.className = 'note ' + cls; n.textContent = msg; n.hidden = !msg; }
 
 var READ_PROMPT = 'This image is a travel healthcare (travel nurse) pay package or job offer. Read it and reply with ONLY a JSON object with these keys. Use null for anything not shown. Numbers only, no $ signs.\n' +
-  '{"taxable_hourly": number (the rate for regular hours, not the overtime or blended rate), "hours_per_week": number, "weekly_meals": number (weekly meals and incidentals stipend, tax-free), "weekly_housing": number (weekly housing stipend, tax-free), "weekly_stipends": number (all tax-free weekly stipends added together, whatever the agency calls them: housing, lodging, M&IE, per diem, meals; convert daily or monthly amounts to weekly), "weekly_gross": number (total weekly pay including stipends), "contract_weeks": number, "travel_pay": number (total tax-free travel stipend or reimbursement for the contract, add first and last check together), "bonus": number (total taxable sign-on, completion or extension bonuses), "state": "two-letter US state code of the assignment", "city": string (city of the facility), "zip": "5-digit ZIP of the facility if shown", "start_date": "YYYY-MM-DD", "specialty": string, "notes": string (one short sentence about anything unusual, like a blended rate only)}';
+  '{"taxable_hourly": number (the rate for regular hours, not the overtime or blended rate), "hours_per_week": number, "weekly_meals": number (weekly meals and incidentals stipend, tax-free), "weekly_housing": number (weekly housing stipend, tax-free), "weekly_stipends": number (all tax-free weekly stipends added together, whatever the agency calls them: housing, lodging, M&IE, per diem, meals; convert daily or monthly amounts to weekly), "weekly_gross": number (total weekly pay including stipends), "contract_weeks": number, "travel_pay": number (total tax-free travel stipend or reimbursement for the contract, add first and last check together), "bonus": number (total taxable sign-on, completion or extension bonuses), "state": "two-letter US state code of the assignment", "city": string (city of the facility), "zip": "5-digit ZIP of the facility if shown", "start_date": "YYYY-MM-DD", "specialty": string, "agency": string (the staffing agency or company name, from a logo, header, signature or email address), "recruiter_contact": string (the recruiter\'s name, phone and email if shown, joined with commas), "notes": string (one short sentence about anything unusual, like a blended rate only)}';
 
 function shrink(file) {
   return new Promise(function (resolve) {
@@ -1012,6 +1014,8 @@ function applyOffer(d) {
   if (d.start_date && /^\d{4}-\d{2}-\d{2}$/.test(d.start_date)) o.start = d.start_date;
   if (d.zip && /^\d{5}$/.test(String(d.zip))) o.zip = String(d.zip);
   if (d.state && STATES[String(d.state).toUpperCase()]) { o.state = String(d.state).toUpperCase(); got.push('state'); }
+  if (d.agency && String(d.agency).trim()) { o.agency = String(d.agency).trim().slice(0, 60); got.push('agency'); }
+  if (d.recruiter_contact && String(d.recruiter_contact).trim()) { o.contact = String(d.recruiter_contact).trim().slice(0, 120); got.push('recruiter contact'); }
   if (!o.label && (d.city || d.specialty)) o.label = [d.city, d.specialty].filter(Boolean).join(' ');
   renderStep();
   if (!got.length) note('warn', 'I couldn\'t find pay numbers in that image. Type them in below.');
@@ -1036,7 +1040,7 @@ function summary() {
     if (goalMo()) { var gn = Math.max(0, r.breakEven + goalWk() - r.other); lines.push('Your goal (save ' + money(goalMo()) + '/month): ' + money(gn) + '/week take-home, about ' + money(grossFor(gn)) + '/week gross'); }
   } else S.offers.forEach(function (o) {
     var a = answers(o), r = evaluate(a);
-    lines.push(o.label + ': ' + r.verdict.label + ', ' + signed(r.gain) + '/week, take-home ' + money(r.takeHome) + '/week, break-even ' + money(r.breakEven) + '/week, ' + signed(r.contractGain) + ' over ' + a.weeks + ' weeks (' + money(a.rate, true) + '/hr + ' + money(a.stipends) + '/wk stipends, ' + money(a.rate * a.hours + a.stipends) + '/wk total, ' + stateName(a.state) + ')');
+    lines.push(o.label + (agencyLine(o) ? ' [' + agencyLine(o) + ']' : '') + ': ' + r.verdict.label + ', ' + signed(r.gain) + '/week, take-home ' + money(r.takeHome) + '/week, break-even ' + money(r.breakEven) + '/week, ' + signed(r.contractGain) + ' over ' + a.weeks + ' weeks (' + money(a.rate, true) + '/hr + ' + money(a.stipends) + '/wk stipends, ' + money(a.rate * a.hours + a.stipends) + '/wk total, ' + stateName(a.state) + ')');
   });
   if (S.mode !== 'explore' && goalMo()) lines.push('Savings goal: ' + goalText());
   return lines.join('\n');
@@ -1141,11 +1145,13 @@ function gapHTML(r, a) {
   return '<section class="card"><h3>What I\'d look at</h3><ul class="tips">' + tips.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></section>';
 }
 
+function agencyLine(o) { return [o.agency, o.contact].filter(function (v) { return v && String(v).trim(); }).join(' | '); }
 // One shared list of what to compare, used by the page and the PDF.
 function compareData() {
   var cols = S.offers.map(function (o, idx) { var a = answers(o), r = evaluate(a); return { o: o, a: a, r: r, idx: idx }; });
   var best = cols.reduce(function (b, x) { return x.r.contractGain > b.r.contractGain ? x : b; }, cols[0]);
   var rows = [
+    ['Agency and contact', function (x) { return [x.o.agency, x.o.contact].filter(function (v) { return v && String(v).trim(); }).join('\n') || 'Not listed'; }],
     ['Where', function (x) { return x.a.city ? x.a.city + ', ' + x.a.state : stateName(x.a.state); }],
     ['Hourly pay', function (x) { return money(x.a.rate, true) + '/hr x ' + x.a.hours; }],
     ['Stipends', function (x) { return money(x.a.stipends) + '/wk'; }],
@@ -1170,7 +1176,7 @@ function compareHTML() {
   }).join('') + '</tr>';
   var body = c.rows.map(function (rw) {
     return '<tr><td style="color:var(--muted);font-size:14px">' + rw[0] + '</td>' + c.cols.map(function (x) {
-      var v = esc(rw[1](x)), st = 'text-align:left' + (x === c.best ? ';background:var(--ice)' : '');
+      var v = esc(rw[1](x)).replace(/\n/g, '<br>').replace(/(\d)-(?=\d)/g, '$1&#8209;'), st = 'text-align:left' + (x === c.best ? ';background:var(--ice)' : '');
       if (rw[2] === 'gain') v = '<b' + (x.r.gain < 0 ? ' class="neg"' : '') + '>' + v + '</b>';
       if (rw[2] === 'verdict') v = '<span class="dot" style="background:' + color[x.r.verdict.key] + '"></span><b>' + v + '</b>';
       return '<td style="' + st + '">' + v + '</td>';
@@ -1190,7 +1196,7 @@ function offerHTML() {
       '<div class="kpi"><b>' + money(r.breakEven) + '</b><span>Weekly break-even</span></div>' +
       '<div class="kpi"><b>' + money(a.rate * a.hours + a.stipends) + '</b><span>Estimated weekly total</span></div>' +
       '<div class="kpi"><b>' + signed(r.contractGain) + '</b><span>Saved over ' + r.weeks + ' weeks</span></div>' +
-    '</div>' + (o.perks ? '<p style="margin:12px 0 0;font-size:15px"><b>Extra perks:</b> ' + esc(o.perks) + ' <span style="color:var(--muted)">(not counted in the numbers)</span></p>' : '') + '</section>' +
+    '</div>' + (agencyLine(o) ? '<p style="margin:12px 0 0;font-size:15px"><b>Agency:</b> ' + esc(agencyLine(o)) + '</p>' : '') + (o.perks ? '<p style="margin:12px 0 0;font-size:15px"><b>Extra perks:</b> ' + esc(o.perks) + ' <span style="color:var(--muted)">(not counted in the numbers)</span></p>' : '') + '</section>' +
     compareHTML() + gapHTML(r, a) + stubHTML(r, a);
 }
 
@@ -1270,7 +1276,7 @@ function bindResult() {
     var from = S.explore; S.mode = 'offer'; S.cur = newOffer(from); S.flow = ['offer']; S.i = 0; S.view = 'step'; render(); window.scrollTo(0, 0);
   };
   if (q('another')) q('another').onclick = function () {
-    S.cur = newOffer(S.offers[S.offers.length - 1]); S.cur.label = ''; S.cur.rate = ''; S.cur.meals = ''; S.cur.housing = ''; S.cur.travelPay = ''; S.cur.bonus = ''; S.cur.perks = '';
+    S.cur = newOffer(S.offers[S.offers.length - 1]); S.cur.label = ''; S.cur.rate = ''; S.cur.meals = ''; S.cur.housing = ''; S.cur.travelPay = ''; S.cur.bonus = ''; S.cur.perks = ''; S.cur.agency = ''; S.cur.contact = '';
     S.flow = FLOWS.another.slice(); S.i = 0; S.view = 'step'; render(); window.scrollTo(0, 0);
   };
   app.querySelectorAll('[data-remove]').forEach(function (b) { b.onclick = function () { S.offers.splice(Number(b.dataset.remove), 1); render(); }; });
