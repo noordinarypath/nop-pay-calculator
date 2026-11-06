@@ -6,13 +6,37 @@
 //   ALLOWED_ORIGINS    optional, comma-separated, e.g. https://www.noordinarypath.com,https://nop-pay.netlify.app
 //                      When set, only those sites can use this reader (keeps strangers off your API bill).
 
-const PROMPT = 'This image is a travel healthcare (travel nurse) pay package or job offer. Read it and reply with ONLY a JSON object with these keys. Use null for anything not shown. Numbers only, no $ signs.\n' +
-  '{"taxable_hourly": number (the rate for regular hours, not the overtime or blended rate), "hours_per_week": number, ' +
-  '"weekly_meals": number (weekly meals and incidentals stipend, tax-free), "weekly_housing": number (weekly housing stipend, tax-free), ' +
-  '"weekly_stipends": number (all tax-free weekly stipends added together, whatever the agency calls them: housing, lodging, M&IE, per diem, meals; convert daily or monthly amounts to weekly), ' +
-  '"weekly_gross": number (total weekly pay including stipends), "contract_weeks": number, ' +
-  '"travel_pay": number (total tax-free travel stipend or reimbursement for the contract, add first and last check together), "bonus": number (total taxable sign-on, completion or extension bonuses), "state": "two-letter US state code of the assignment", ' +
-  '"city": string (city of the facility), "zip": "5-digit ZIP of the facility if shown", "start_date": "YYYY-MM-DD", "specialty": string, "agency": string (the staffing agency or company name, from a logo, header, signature or email address), "recruiter_contact": string (the recruiter\'s name, phone and email if shown, joined with commas), "notes": string (one short sentence about anything unusual, like a blended rate only)}';
+const PROMPT = 'This image is a travel healthcare (travel nurse) pay package, job offer or job post. Read it and call save_offer with what you find. ' +
+  'Leave out anything not shown. Numbers are plain numbers with no $ signs or commas. Convert daily or monthly stipends to weekly.';
+
+const num = (d) => ({ type: 'number', description: d });
+const str = (d) => ({ type: 'string', description: d });
+const TOOL = {
+  name: 'save_offer',
+  description: 'Save the pay numbers and details read from the offer.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      taxable_hourly: num('The taxable rate for regular hours, not the overtime or blended rate'),
+      hours_per_week: num('Guaranteed hours per week'),
+      weekly_meals: num('Weekly meals and incidentals stipend, tax-free'),
+      weekly_housing: num('Weekly housing or lodging stipend, tax-free'),
+      weekly_stipends: num('All tax-free weekly stipends added together, whatever the agency calls them'),
+      weekly_gross: num('Total weekly pay including stipends'),
+      contract_weeks: num('Contract length in weeks'),
+      travel_pay: num('Total tax-free travel stipend or reimbursement for the contract, first and last check added together'),
+      bonus: num('Total taxable sign-on, completion or extension bonuses'),
+      state: str('Two-letter US state code of the assignment'),
+      city: str('City of the facility'),
+      zip: str('5-digit ZIP of the facility'),
+      start_date: str('Start date as YYYY-MM-DD'),
+      specialty: str('Specialty or unit, e.g. Med Surg / Ortho'),
+      agency: str('Staffing agency or company name, from a logo, header, signature, email address or the text'),
+      recruiter_contact: str('Recruiter name, phone and email if shown, joined with commas'),
+      notes: str('One short sentence about anything unusual, like a blended rate only')
+    }
+  }
+};
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
@@ -40,7 +64,9 @@ export default async (req) => {
     },
     body: JSON.stringify({
       model: process.env.OFFER_MODEL || 'claude-haiku-5-5',
-      max_tokens: 600,
+      max_tokens: 1024,
+      tools: [TOOL],
+      tool_choice: { type: 'tool', name: 'save_offer' },
       messages: [{
         role: 'user',
         content: [
@@ -56,11 +82,15 @@ export default async (req) => {
     return json({ error: 'Reader unavailable' }, res.status === 429 ? 429 : 502);
   }
   const data = await res.json();
+  const used = (data.content || []).find((c) => c.type === 'tool_use');
+  if (used && used.input && typeof used.input === 'object') return json(used.input);
+  // Fallback: pull a JSON object out of any text reply.
   const text = (data.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('');
   const match = text.match(/\{[\s\S]*\}/);
   try {
     return json(JSON.parse(match ? match[0] : text));
   } catch {
+    console.error('Could not parse reader reply', data.stop_reason, text.slice(0, 1500));
     return json({ error: 'Could not read that image' }, 422);
   }
 };
