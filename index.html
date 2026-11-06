@@ -561,7 +561,12 @@ function buildPDF() {
     doc.setPage(p);
     doc.setDrawColor(PDFC.line[0], PDFC.line[1], PDFC.line[2]); doc.setLineWidth(1); doc.line(M, H - 74, W - M, H - 74);
     font(10, true); color(PDFC.deep);
-    doc.text('Want a second set of eyes on an offer? Book a quick call with ' + CONFIG.recruiter + ': ' + CONFIG.bookingLink.replace('https://', ''), M, H - 56);
+    var lead = 'Want a second set of eyes on an offer? ';
+    doc.text(lead, M, H - 56);
+    var lx = M + doc.getTextWidth(lead), cta = 'Book a quick call with ' + CONFIG.recruiter;
+    color(PDFC.ocean); doc.textWithLink(cta, lx, H - 56, { url: CONFIG.bookingLink });
+    doc.setDrawColor(PDFC.ocean[0], PDFC.ocean[1], PDFC.ocean[2]); doc.setLineWidth(.6); doc.line(lx, H - 54, lx + doc.getTextWidth(cta), H - 54);
+    color(PDFC.deep);
     font(8); color(PDFC.muted);
     doc.text(TAX_YEAR + ' federal and state tax estimates. Your real paycheck will be a little different. Not tax advice.', M, H - 40);
     doc.text(CONFIG.site.replace('https://', '') + (pages > 1 ? '   Page ' + p + ' of ' + pages : ''), M, H - 28);
@@ -590,12 +595,12 @@ async function savePDF() {
 /* ===== Settings you can change ===== */
 var CONFIG = {
   // Apps Script web app URL (ends in /exec). Leads and result emails go here. Empty = nothing is sent.
-  leadUrl: 'https://script.google.com/macros/s/AKfycby4unv_67n587f1XmCSl7HF1Q7L2M-pph_PK7MT-cXZqXhBnYdQIQd6iRy-fCFfEYmM/exec',
+  leadUrl: '',
   // Netlify function that reads pay package screenshots.
   readerUrl: '/.netlify/functions/read-offer',
   // Netlify function that looks up GSA stipend limits for a city (live, updates every October 1).
   gsaUrl: '/.netlify/functions/gsa',
-  bookingLink: 'https://bit.ly/nop-calendar',
+  bookingLink: 'https://nop-book.netlify.app/?ref=call&t=L8JcWGc4rtK0Rbdv',
   recruiter: 'Kristin',
   site: 'https://www.noordinarypath.com',
   typicalRate: 20     // base hourly when there's no real package yet: most packages start at $20/hr and max the stipends first
@@ -1050,7 +1055,8 @@ function submitGate(e) {
   S.lead = { first: first, email: email };
   S.flow.pop();
   finish();
-  sendLead(Object.assign({ kind: 'results', first: first, email: email, mode: S.mode, summary: summary() }, headline(), pdfPayload()));
+  S.sentSig = summary(); S.justSent = true; save(); render();
+  sendLead(Object.assign({ kind: 'results', first: first, email: email, mode: S.mode, summary: S.sentSig }, headline(), pdfPayload()));
 }
 
 function pdfPayload() {
@@ -1063,7 +1069,10 @@ function pdfPayload() {
 
 /* ===== Results ===== */
 function renderResult() {
-  var html = S.mode === 'explore' && S.explore ? exploreHTML() : offerHTML();
+  var sentNow = S.lead && !DESK && S.sentSig && S.sentSig === summary();
+  var html = (sentNow && S.justSent ? '<div class="note ok" role="status" style="font-size:15px">Your PDF is on its way to <b>' + esc(S.lead.email) + '</b>. If it\'s not in your inbox in a few minutes, check your spam folder and mark it Not Spam.</div>' : '') +
+    (S.mode === 'explore' && S.explore ? exploreHTML() : offerHTML());
+  S.justSent = false;
   html += talkHTML() + actionsHTML() +
     '<p class="foot">' + TAX_YEAR + ' federal and state tax estimates, before any credits. Your real paycheck will be a little different. Not tax advice.<br>Made by <a href="' + CONFIG.site + '" target="_blank" rel="noopener" style="color:var(--teal)">No Ordinary Path</a></p>';
   app.innerHTML = html;
@@ -1247,7 +1256,7 @@ function actionsHTML() {
   return '<section class="card"><h3>Keep these numbers</h3><div class="actions" style="margin-top:12px">' +
     (S.mode !== 'explore' ? '<button class="btn btn-soft" id="another">Compare Another Offer</button>' : '') +
     '<button class="btn btn-soft" id="copy">Copy Results</button>' +
-    (S.lead && !DESK ? '<button class="btn btn-soft" id="mail">Email Me This PDF</button>' : '<button class="btn btn-soft" id="dl">Save as PDF</button>') +
+    (S.lead && !DESK ? '<button class="btn btn-soft" id="mail">' + (S.sentSig === summary() ? 'Resend My PDF' : 'Email Me This PDF') + '</button>' : '<button class="btn btn-soft" id="dl">Save as PDF</button>') +
     (top && DESK ? '<button class="btn btn-soft" id="print">Print</button>' : '') +
     '<button class="btn btn-soft" id="edit">Change My Answers</button>' +
     '</div><div class="note ok" id="actNote" hidden style="margin-top:12px"></div>' +
@@ -1281,8 +1290,9 @@ function bindResult() {
   if (q('mail')) q('mail').onclick = function () {
     var btn = this; btn.disabled = true;
     if (!CONFIG.leadUrl) { actNote('Email isn\'t set up yet.'); btn.disabled = false; return; }
-    sendLead(Object.assign({ kind: 'results', repeat: true, first: S.lead.first, email: S.lead.email, mode: S.mode, summary: summary() }, headline(), pdfPayload()))
-      .then(function () { actNote('Sent to ' + S.lead.email + '. It should land in a minute or two. Check spam if you don\'t see it.'); setTimeout(function () { btn.disabled = false; }, 4000); });
+    S.sentSig = summary(); save();
+    sendLead(Object.assign({ kind: 'results', repeat: true, first: S.lead.first, email: S.lead.email, mode: S.mode, summary: S.sentSig }, headline(), pdfPayload()))
+      .then(function () { actNote('Sent to ' + S.lead.email + '. It should land in a minute or two. Check spam if you don\'t see it.'); btn.textContent = 'Resend My PDF'; setTimeout(function () { btn.disabled = false; }, 4000); });
   };
   if (q('dl')) q('dl').onclick = async function () {
     var btn = this; btn.disabled = true;
