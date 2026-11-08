@@ -608,6 +608,17 @@ var CONFIG = {
 };
 var DESK = /(^|[?&])desk\b/.test(location.search) || location.hash === '#desk';
 var IN_CLAUDE = typeof window.claude !== 'undefined';
+// ?city=Mesa&state=AZ (from the city guide buttons) fills the city and state on both paths.
+// State can be the 2-letter code or the full name; anything else is ignored.
+var PREFILL = (function () {
+  try {
+    var q = new URLSearchParams(location.search);
+    var st = String(q.get('state') || '').trim(), city = String(q.get('city') || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+    var code = st.toUpperCase();
+    if (!STATES[code]) code = Object.keys(STATES).filter(function (k) { return STATES[k].n.toLowerCase() === st.toLowerCase(); })[0] || '';
+    return code ? { state: code, city: city } : null;
+  } catch (e) { return null; }
+})();
 
 /* ===== Questions ===== */
 var STATE_OPTS = Object.keys(STATES).sort(function (a, b) { return STATES[a].n.localeCompare(STATES[b].n); })
@@ -668,6 +679,7 @@ var FLOWS = {
 
 /* ===== State ===== */
 var S = load() || fresh();
+if (PREFILL && S.view !== 'start') S.view = 'start';   // arriving from a city guide: start fresh ("See my last results" is still there)
 function fresh() {
   return { view: 'start', mode: null, flow: [], i: 0, shared: { status: 'single', home: {}, other: {} },
     offers: [], cur: null, lead: null, explore: null };
@@ -784,7 +796,7 @@ function renderStart() {
   var has = S.offers.length || S.explore;
   app.innerHTML =
     '<section class="card">' +
-      '<h2>Let\'s run your numbers</h2>' +
+      '<h2>' + (PREFILL ? 'Let\'s run your numbers for ' + esc(PREFILL.city ? cityName(PREFILL.city) + ', ' + PREFILL.state : stateName(PREFILL.state)) : 'Let\'s run your numbers') + '</h2>' +
       '<p class="sub">About 3 minutes. Have your monthly bills in mind. If you have an offer, a screenshot of it is all you need.</p>' +
       '<div class="choices">' +
         '<button class="choice" data-go="offer"><b>I have an offer to check</b><span>Screenshot or type the pay package. I\'ll tell you if it\'s a No, Maybe, Yes or Excellent.</span></button>' +
@@ -818,6 +830,7 @@ function start(kind) {
   S.mode = kind; S.editIdx = null; S.flow = FLOWS[kind].slice(); S.i = 0;
   if (DESK || S.lead) S.flow = S.flow.filter(function (k) { return k !== 'gate'; });
   S.cur = newOffer();
+  if (PREFILL) { S.cur.state = PREFILL.state; if (PREFILL.city) S.cur.city = PREFILL.city; }
   S.view = 'step'; render(); window.scrollTo(0, 0);
 }
 
