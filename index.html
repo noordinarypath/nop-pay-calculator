@@ -485,7 +485,7 @@ function buildPDF() {
     var a2 = answers(o), r2 = evaluate(a2), vc = PDFC.v[r2.verdict.key];
     font(13, true); color(PDFC.ink); doc.text(o.label || 'Your offer', M, y + 4);
     font(10); color(PDFC.muted);
-    var sub = doc.splitTextToSize(money(a2.rate, true) + '/hr x ' + a2.hours + ' hrs + ' + money(a2.stipends) + '/week stipends = ' + money(a2.rate * a2.hours + a2.stipends) + '/week estimated total, ' + a2.weeks + ' weeks, ' + (a2.city ? a2.city + ', ' : '') + stateName(a2.state), CW);
+    var sub = doc.splitTextToSize(money(a2.rate, true) + '/hr x ' + a2.hours + ' hrs + ' + money(a2.stipends) + '/week stipends = ' + money(a2.rate * a2.hours + a2.stipends) + '/week estimated total, ' + a2.weeks + ' weeks, ' + (a2.city ? cityName(a2.city) + ', ' : '') + stateName(a2.state), CW);
     doc.text(sub, M, y + 20);
     y += 20 + sub.length * 13;
     fill(vc[1]); doc.roundedRect(M, y, CW, 92, 10, 10, 'F');
@@ -735,7 +735,7 @@ function gsaMax(o, weeks) {
   var d = startDate(o), m0 = d.getMonth(), n = Math.max(1, Math.ceil((weeks || 13) * 7 / 30.4)), tot = 0;
   for (var i = 0; i < n; i++) tot += o.gsa.lodging[(m0 + i) % 12];
   var housing = Math.round(tot / n) * 7, meals = o.gsa.meals * 7;
-  var place = (o.city ? o.city + ', ' + o.state : stateName(o.state));
+  var place = (o.city ? cityName(o.city) + ', ' + o.state : stateName(o.state));
   return { housing: housing, meals: meals, total: housing + meals, place: place, standard: o.gsa.standard };
 }
 
@@ -764,6 +764,12 @@ function grossNote() {
     (cap ? '' : ' I couldn\'t look up the stipend limit for this location, so this assumes there isn\'t one.');
 }
 function stateName(k) { return STATES[k] ? STATES[k].n : 'your state'; }
+// City for display: fixes all-lowercase or ALL-CAPS typing ("mesa" -> "Mesa", "winston-salem" -> "Winston-Salem"); mixed case like "McAllen" stays as typed.
+function cityName(c) {
+  c = String(c || '').trim();
+  if (!c || (c !== c.toLowerCase() && c !== c.toUpperCase())) return c;
+  return c.toLowerCase().replace(/(^|[\s\-.])([a-z])/g, function (m, p, l) { return p + l.toUpperCase(); });
+}
 
 /* ===== Rendering ===== */
 var app = $('#app');
@@ -902,7 +908,7 @@ function advance() {
 function finish() {
   if (S.mode === 'explore') S.explore = S.cur;
   else {
-    if (!S.cur.label) S.cur.label = (S.cur.city ? S.cur.city + ', ' + (S.cur.state || '') : S.cur.state ? stateName(S.cur.state) : 'Offer') + ' offer' + (S.offers.length ? ' ' + (S.offers.length + 1) : '');
+    if (!S.cur.label) S.cur.label = (S.cur.city ? cityName(S.cur.city) + ', ' + (S.cur.state || '') : S.cur.state ? stateName(S.cur.state) : 'Offer') + ' offer' + (S.offers.length ? ' ' + (S.offers.length + 1) : '');
     if (S.editIdx != null && S.offers[S.editIdx]) S.offers[S.editIdx] = S.cur; else S.offers.push(S.cur);
     S.editIdx = null;
   }
@@ -1152,7 +1158,7 @@ function compareData() {
   var best = cols.reduce(function (b, x) { return x.r.contractGain > b.r.contractGain ? x : b; }, cols[0]);
   var rows = [
     ['Agency and contact', function (x) { return [x.o.agency, x.o.contact].filter(function (v) { return v && String(v).trim(); }).join('\n') || 'Not listed'; }],
-    ['Where', function (x) { return x.a.city ? x.a.city + ', ' + x.a.state : stateName(x.a.state); }],
+    ['Where', function (x) { return x.a.city ? cityName(x.a.city) + ', ' + x.a.state : stateName(x.a.state); }],
     ['Hourly pay', function (x) { return money(x.a.rate, true) + '/hr x ' + x.a.hours; }],
     ['Stipends', function (x) { return money(x.a.stipends) + '/wk'; }],
     ['Estimated weekly total', function (x) { return money(x.a.rate * x.a.hours + x.a.stipends); }],
