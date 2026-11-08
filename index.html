@@ -44,7 +44,9 @@ body { background: var(--page); color: var(--ink); font-family: var(--f-body); f
 .brand { font: 800 12px/1 var(--f-body); letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
 h1 { font: 500 clamp(38px, 9vw, 52px)/1 var(--f-display); margin: 10px 0 8px; text-wrap: balance; }
 .lead { font-weight: 700; margin: 0; max-width: 34ch; }
-.byline { margin: 10px 0 0; font-size: 14px; opacity: .85; max-width: 46ch; }
+.byline { margin: 14px 0 0; font-size: 14px; max-width: 46ch; display: flex; align-items: center; gap: 10px; }
+.byline img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex: none; border: 2px solid rgba(255,255,255,.7); }
+.byline span { opacity: .9; }
 .trust { margin: 0 4px 12px; padding: 12px 14px; border-radius: 12px; background: var(--card); color: var(--muted); font-size: 14px; line-height: 1.5; }
 .trust b { color: var(--deep); }
 .trust a { color: var(--teal); }
@@ -159,7 +161,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--teal); }
     <div class="brand">No Ordinary Path</div>
     <h1>Is this assignment worth it?</h1>
     <p class="lead" id="heroLead">Answer a few quick questions and I'll tell you if the pay works for your life.</p>
-    <p class="byline">Built by Kristin, a travel nurse recruiter who spent years on the road with her family.</p>
+    <p class="byline"><img src="https://static.wixstatic.com/media/e48b3c_6426ff8cad5e4a0fa45fb98a9781326a~mv2.jpg/v1/crop/x_0,y_432,w_1808,h_2352/fill/w_96,h_96,al_t,q_85/kristin.jpg" alt="Kristin" width="48" height="48"><span>Built by Kristin, a travel nurse recruiter who spent years on the road with her family.</span></p>
   </div>
 </header>
 <main class="wrap" id="app" aria-live="polite"></main>
