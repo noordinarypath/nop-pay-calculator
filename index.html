@@ -84,9 +84,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .choice:hover { border-color: var(--aqua); background: var(--ice); }
 .choice b { font: 500 24px/1.1 var(--f-display); color: var(--ocean); }
 .choice span { color: var(--muted); font-size: 15px; }
-.sample { border: 1.5px dashed var(--line); border-radius: 16px; padding: 14px 16px; display: grid; gap: 6px; }
-.sample .tag { justify-self: start; font: 800 11px var(--f-body); letter-spacing: .1em; text-transform: uppercase; background: var(--ice); color: var(--deep); padding: 4px 8px; border-radius: 99px; }
-.sample p { margin: 0; color: var(--muted); font-size: 15px; }
 /* dropzone */
 .drop { border: 2px dashed var(--aqua); border-radius: 16px; padding: 18px; text-align: center; background: var(--ice); cursor: pointer; display: grid; gap: 4px; justify-items: center; }
 .drop.over { background: var(--card); }
@@ -804,24 +801,10 @@ function renderStart() {
         (has ? '<button class="choice" data-go="resume"><b>See my last results</b><span>Pick up where you left off.</span></button>' : '') +
       '</div>' +
     '</section>' +
-    '<section class="card">' +
-      '<div class="sample"><span class="tag">Example readout</span>' +
-        exampleHTML() +
-      '</div>' +
-    '</section>' +
     '<p class="foot">Estimates for ' + TAX_YEAR + ' federal and state taxes. Not tax advice.</p>';
   app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { start(b.dataset.go); }; });
 }
 
-var EXAMPLE = { state: 'OH', rate: 26, hours: 36, stipends: 1200, weeks: 13, travelPay: 500, status: 'single', benefits: 40,
-  home: { rent: 1650, utilities: 260, phone: 95, internet: 60, car: 520, insurance: 210, debt: 450 },
-  assign: { housing: 2300, fuel: 260, food: 800, fun: 300 }, trip: { gas: 350, hotels: 180 }, other: {} };
-function exampleHTML() {
-  var r = evaluate(EXAMPLE);
-  return '<div class="verdict ' + r.verdict.key + '" style="box-shadow:none;padding:14px 16px"><span class="word" style="font-size:44px">' + r.verdict.label + '</span>' +
-    '<span class="big" style="font-size:32px">' + signed(r.gain) + '<small> / week left over</small></span></div>' +
-    '<p>$26/hr plus $1,200 a week in meals and housing stipends for 13 weeks in Ohio, with a mortgage, car payment and student loans back home. That\'s about ' + money(r.contractGain) + ' saved by the end of the contract.</p>';
-}
 
 function start(kind) {
   if (kind === 'resume') { S.view = 'result'; return render(); }
