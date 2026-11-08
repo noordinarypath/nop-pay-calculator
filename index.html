@@ -44,6 +44,10 @@ body { background: var(--page); color: var(--ink); font-family: var(--f-body); f
 .brand { font: 800 12px/1 var(--f-body); letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
 h1 { font: 500 clamp(38px, 9vw, 52px)/1 var(--f-display); margin: 10px 0 8px; text-wrap: balance; }
 .lead { font-weight: 700; margin: 0; max-width: 34ch; }
+.byline { margin: 10px 0 0; font-size: 14px; opacity: .85; max-width: 46ch; }
+.trust { margin: 0 4px 12px; padding: 12px 14px; border-radius: 12px; background: var(--card); color: var(--muted); font-size: 14px; line-height: 1.5; }
+.trust b { color: var(--deep); }
+.trust a { color: var(--teal); }
 main.wrap { margin-top: -44px; padding-block: 0 48px; display: flex; flex-direction: column; gap: 16px; }
 .card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 22px 20px; }
 h2 { font: 500 30px/1.1 var(--f-display); color: var(--ocean); margin: 0 0 4px; text-wrap: balance; }
@@ -155,6 +159,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--teal); }
     <div class="brand">No Ordinary Path</div>
     <h1>Is this assignment worth it?</h1>
     <p class="lead" id="heroLead">Answer a few quick questions and I'll tell you if the pay works for your life.</p>
+    <p class="byline">Built by Kristin, a travel nurse recruiter who spent years on the road with her family.</p>
   </div>
 </header>
 <main class="wrap" id="app" aria-live="polite"></main>
@@ -801,6 +806,7 @@ function renderStart() {
         (has ? '<button class="choice" data-go="resume"><b>See my last results</b><span>Pick up where you left off.</span></button>' : '') +
       '</div>' +
     '</section>' +
+    '<p class="trust"><b>Your info stays private.</b> I never ask for your SSN or bank info, and every bill is a ballpark you can skip. Your numbers stay on your device until you ask for your PDF, and I never sell or share them. <a href="' + CONFIG.site + '/privacypolicy" target="_blank" rel="noopener">Privacy policy</a></p>' +
     '<p class="foot">Estimates for ' + TAX_YEAR + ' federal and state taxes. Not tax advice.</p>';
   app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { start(b.dataset.go); }; });
 }
@@ -843,7 +849,7 @@ function renderStep() {
       '<div class="field"><label for="g_first">First name</label><input type="text" id="g_first" autocomplete="given-name" required></div>' +
       '<div class="field"><label for="g_email">Email</label><input type="email" id="g_email" autocomplete="email" required></div>' +
       '<input class="hp" type="text" id="g_web" tabindex="-1" autocomplete="off" aria-hidden="true">' +
-      '<p class="hint" style="color:var(--muted);font-size:14px;margin:0">I\'ll email you a PDF of your results and a couple of tips for negotiating your package. Unsubscribe anytime.</p>' +
+      '<p class="hint" style="color:var(--muted);font-size:14px;margin:0">I\'ll email you a PDF of your results and a couple of tips for negotiating your package. No spam, unsubscribe anytime, and I never sell or share your info. <a href="' + CONFIG.site + '/privacypolicy" target="_blank" rel="noopener" style="color:var(--teal)">Privacy policy</a></p>' +
       '<div class="note err" id="gateErr" hidden></div>' +
       '<div class="nav"><button type="button" class="link" id="back">Back</button><button class="btn btn-cta" type="submit">Show My Results</button></div></form>';
   } else {
@@ -914,7 +920,7 @@ function finish() {
 /* ===== Screenshot reader ===== */
 function readerHTML() {
   return '<label class="drop" id="drop" tabindex="0"><input type="file" id="shot" accept="image/png,image/jpeg,image/webp,image/gif">' +
-    '<b>Choose a Screenshot</b><small>Tap to pick a photo or screenshot. I\'ll fill in what I can find.</small></label>' +
+    '<b>Choose a Screenshot</b><small>Tap to pick a photo or screenshot. I\'ll fill in what I can find. Feel free to crop out your name first.</small></label>' +
     '<div class="paste"><button type="button" class="btn btn-soft" id="pasteBtn">Paste Screenshot</button>' +
     '<div class="pastebox" id="pasteBox" contenteditable="true" role="textbox" aria-label="Paste a screenshot here" hidden></div></div>' +
     '<div class="note" id="readNote" hidden style="margin-top:12px"></div><div class="or">or type it in</div>';
