@@ -719,7 +719,7 @@ function startDate(o) {
 function fiscalYear(d) { return d.getMonth() >= 9 ? d.getFullYear() + 1 : d.getFullYear(); }
 function fetchGSA(o) {
   if (!o || !o.state || !CONFIG.gsaUrl) return;
-  var d = startDate(o), fy = fiscalYear(d), key = [o.city || '', o.state, o.zip || '', fy].join('|').toLowerCase();
+  var d = startDate(o), fy = fiscalYear(d), key = [o.city || '', o.state, o.zip || '', fy, 'v2'].join('|').toLowerCase();
   if (o.gsa && o.gsa.key === key) return;
   var url = CONFIG.gsaUrl + '?state=' + encodeURIComponent(o.state) + '&fy=' + fy +
     (o.city ? '&city=' + encodeURIComponent(o.city) : '') + (o.zip ? '&zip=' + encodeURIComponent(o.zip) : '');

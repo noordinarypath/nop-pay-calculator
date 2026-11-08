@@ -50,10 +50,33 @@ export default async (req) => {
   const want = clean(city);
   const isStd = (r) => String(r.standardRate) === 'true' || /standard rate/i.test(r.city || '');
   const names = (r) => String(r.city || '').split(/\s*[\/,]\s*|\s+or\s+|\s+and\s+/i).map(clean);
-  const pick = rows.find((r) => want && names(r).includes(want))
+  let pick = rows.find((r) => want && names(r).includes(want))
     || (zip ? rows.find((r) => !isStd(r)) : null)
     || rows.find(isStd)
     || rows[0];
+
+  // Suburbs (Mesa, Henderson) aren't named in GSA's list, so a city lookup falls back to the
+  // standard rate even when the county has a higher one. GSA's ZIP lookup knows the county,
+  // so find a ZIP for the city and try again. Any failure keeps the answer we already have.
+  if (isStd(pick) && city && !zip) {
+    try {
+      const zr = await fetch(`https://api.zippopotam.us/us/${state.toLowerCase()}/${encodeURIComponent(city.toLowerCase())}`);
+      if (zr.ok) {
+        const places = (await zr.json()).places || [];
+        const z = places.map((p) => p['post code']).find((c) => /^\d{5}$/.test(c));
+        if (z) {
+          const gr = await fetch(`${base}zip/${z}/year/${fy}?api_key=${process.env.GSA_API_KEY}`);
+          if (gr.ok) {
+            const zrows = ((await gr.json()).rates || []).flatMap((r) => r.rate || []);
+            const named = zrows.find((r) => !isStd(r));
+            if (named) pick = named;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('ZIP fallback failed', e);
+    }
+  }
 
   const months = ((pick.months && pick.months.month) || [])
     .map((m) => ({ n: Number(m.number), v: Number(m.value) }))
