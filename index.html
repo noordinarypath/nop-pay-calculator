@@ -479,7 +479,7 @@ function buildPDF() {
     trow('No', PDFC.v.no[0], '< ' + money(need(0)), '< ' + money(grossFor(need(0))));
     levels.forEach(function (t) { trow(t[0], t[2], money(need(t[1])), money(grossFor(need(t[1]))), t[0].indexOf('Your goal') === 0); });
     y += 6;
-    para('Anything under break even is a No: the contract would cost you money. Each row below break even adds what you\'d have left to save each week. ' + grossNote() + ' For a real answer, check an actual pay package.' + (other ? ' These numbers already count your other household income.' : ''), 9);
+    para('Anything under break even is a No: the contract would cost you money. Each row above break even adds what you\'d have left to save each week. ' + grossNote() + ' For a real answer, check an actual pay package.' + (other ? ' These numbers already count your other household income.' : ''), 9);
   } else {
     var offerSection = function (o) {
     var a2 = answers(o), r2 = evaluate(a2), vc = PDFC.v[r2.verdict.key];
