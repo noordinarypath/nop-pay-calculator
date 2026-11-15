@@ -1,6 +1,6 @@
 <title>Assignment Pay Calculator</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Find out if a travel nurse pay package actually works for your budget. Screenshot your offer, answer a few questions, get a clear yes or no.">
+<meta name="description" content="Find out if a travel nurse pay package actually works for your budget. Screenshot your pay package, answer a few questions, get a clear yes or no.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Damion&family=Nunito+Sans:opsz,wght@6..12,400;6..12,700;6..12,800&display=swap">
@@ -487,7 +487,7 @@ function buildPDF() {
   } else {
     var offerSection = function (o) {
     var a2 = answers(o), r2 = evaluate(a2), vc = PDFC.v[r2.verdict.key];
-    font(13, true); color(PDFC.ink); doc.text(o.label || 'Your offer', M, y + 4);
+    font(13, true); color(PDFC.ink); doc.text(o.label || 'Your pay package', M, y + 4);
     font(10); color(PDFC.muted);
     var sub = doc.splitTextToSize(money(a2.rate, true) + '/hr x ' + a2.hours + ' hrs + ' + money(a2.stipends) + '/week stipends = ' + money(a2.rate * a2.hours + a2.stipends) + '/week estimated total, ' + a2.weeks + ' weeks, ' + (a2.city ? cityName(a2.city) + ', ' : '') + stateName(a2.state), CW);
     doc.text(sub, M, y + 20);
@@ -526,11 +526,11 @@ function buildPDF() {
 
     if (S.offers.length > 1) {
       var c = compareData(), n = c.cols.length, lw = 132, cw = (CW - lw) / n;
-      font(15, true); color(PDFC.ocean); doc.text('Comparing ' + n + ' offers', M, y + 12);
+      font(15, true); color(PDFC.ocean); doc.text('Comparing ' + n + ' pay packages', M, y + 12);
       font(10.5); color(PDFC.ink); doc.text('Best for your budget: ' + c.best.o.label + ', ' + signed(c.best.r.contractGain) + ' over the contract.', M, y + 32);
       y += 48;
       // header row: offer names
-      var headLines = c.cols.map(function (x) { font(10, true); return doc.splitTextToSize(x.o.label || 'Offer', cw - 12); });
+      var headLines = c.cols.map(function (x) { font(10, true); return doc.splitTextToSize(x.o.label || 'Pay package', cw - 12); });
       var hh = Math.max.apply(null, headLines.map(function (l) { return l.length; })) * 13 + 12;
       c.cols.forEach(function (x, i) {
         var cx = M + lw + i * cw;
@@ -553,7 +553,7 @@ function buildPDF() {
         y += rh;
       });
       y += 8;
-      para('The full breakdown for each offer is on the pages that follow.', 9);
+      para('The full breakdown for each pay package is on the pages that follow.', 9);
       S.offers.forEach(function (o) { doc.addPage(); y = M; offerSection(o); });
     } else {
       offerSection(S.offers[S.offers.length - 1]);
@@ -566,9 +566,9 @@ function buildPDF() {
     doc.setPage(p);
     doc.setDrawColor(PDFC.line[0], PDFC.line[1], PDFC.line[2]); doc.setLineWidth(1); doc.line(M, H - 74, W - M, H - 74);
     font(10, true); color(PDFC.deep);
-    var lead = 'Want a second set of eyes on an offer? ';
+    var lead = 'Want a second set of eyes on a pay package? ';
     doc.text(lead, M, H - 56);
-    var lx = M + doc.getTextWidth(lead), cta = 'Book a quick call with ' + CONFIG.recruiter;
+    var lx = M + doc.getTextWidth(lead), cta = 'Pick a time to chat with ' + CONFIG.recruiter;
     color(PDFC.ocean); doc.textWithLink(cta, lx, H - 56, { url: CONFIG.bookingLink });
     doc.setDrawColor(PDFC.ocean[0], PDFC.ocean[1], PDFC.ocean[2]); doc.setLineWidth(.6); doc.line(lx, H - 54, lx + doc.getTextWidth(cta), H - 54);
     color(PDFC.deep);
@@ -580,7 +580,7 @@ function buildPDF() {
 }
 
 function pdfName() {
-  var label = S.mode === 'explore' ? 'My break-even' : S.offers.length > 1 ? 'Offer comparison' : (S.offers[S.offers.length - 1].label || 'Offer');
+  var label = S.mode === 'explore' ? 'My break-even' : S.offers.length > 1 ? 'Pay package comparison' : (S.offers[S.offers.length - 1].label || 'Pay package');
   return 'NOP ' + label.replace(/[^\w\s-]/g, '').trim().slice(0, 40) + '.pdf';
 }
 
@@ -629,17 +629,17 @@ var STATE_OPTS = Object.keys(STATES).sort(function (a, b) { return STATES[a].n.l
   .map(function (k) { return [k, STATES[k].n]; });
 
 var STEPS = {
-  offer: { title: 'The offer', sub: 'Screenshot the pay package and I\'ll pull the numbers, or type them in.', scope: 'offer', reader: true, fields: [
-    { k: 'label', t: 'text', l: 'Name this offer', ph: 'e.g. Tucson ICU nights', opt: true },
+  offer: { title: 'The pay package', sub: 'Screenshot the pay package and I\'ll pull the numbers, or type them in.', scope: 'offer', reader: true, fields: [
+    { k: 'label', t: 'text', l: 'Name this pay package', ph: 'e.g. Tucson ICU nights', opt: true },
     { pair: [{ k: 'agency', t: 'text', l: 'Agency', ph: 'e.g. Atlas MedStaff', opt: true }, { k: 'contact', t: 'text', l: 'Recruiter contact', ph: 'Name, phone or email', opt: true }] },
     { pair: [{ k: 'city', t: 'text', l: 'City', ph: 'e.g. Omaha' }, { k: 'state', t: 'state', l: 'State' }] },
     { pair: [{ k: 'rate', t: 'money', l: 'Rate for regular hours', per: '/hr', req: true }, { k: 'hours', t: 'num', l: 'Hours per week', def: 36 }] },
     { pair: [{ k: 'meals', t: 'money', l: 'Meals stipend', per: '/week' }, { k: 'housing', t: 'money', l: 'Housing stipend', per: '/week' }] },
     { pair: [{ k: 'weeks', t: 'num', l: 'Contract length (weeks)', def: 13 }, { k: 'travelPay', t: 'money', l: 'Travel pay (total)', hint: 'Travel stipend or reimbursement for the whole contract. Not taxed.' }] },
     { k: 'bonus', t: 'money', l: 'Bonuses (total)', opt: true, hint: 'Sign-on, completion or extension bonuses. These are taxed like regular pay.' },
-    { k: 'perks', t: 'text', l: 'Extra perks', opt: true, ph: 'e.g. $200 adventure, free jacket, holiday gifts', hint: 'Anything else the agency offers. Not counted in the numbers, but it shows up when you compare offers.' }
+    { k: 'perks', t: 'text', l: 'Extra perks', opt: true, ph: 'e.g. $200 adventure, free jacket, holiday gifts', hint: 'Anything else the agency offers. Not counted in the numbers, but it shows up when you compare pay packages.' }
   ]},
-  typical: { title: 'Your next contract', sub: 'No offer yet? No problem. Tell me roughly what you\'re looking for and I\'ll find your number.', scope: 'offer', fields: [
+  typical: { title: 'Your next contract', sub: 'No pay package yet? No problem. Tell me roughly what you\'re looking for and I\'ll find your number.', scope: 'offer', fields: [
     { pair: [{ k: 'city', t: 'text', l: 'City', ph: 'e.g. Omaha', opt: true }, { k: 'state', t: 'state', l: 'State', hint: 'Your best guess is fine.' }] },
     { pair: [{ k: 'hours', t: 'num', l: 'Hours per week', def: 36 }, { k: 'weeks', t: 'num', l: 'Contract length (weeks)', def: 13 }] }
   ]},
@@ -801,10 +801,10 @@ function renderStart() {
   app.innerHTML =
     '<section class="card">' +
       '<h2>' + (PREFILL ? 'Let\'s run your numbers for ' + esc(PREFILL.city ? cityName(PREFILL.city) + ', ' + PREFILL.state : stateName(PREFILL.state)) : 'Let\'s run your numbers') + '</h2>' +
-      '<p class="sub">About 3 minutes. Have your monthly bills in mind. If you have an offer, a screenshot of it is all you need.</p>' +
+      '<p class="sub">About 3 minutes. Have your monthly bills in mind. If you have a pay package, a screenshot of it is all you need.</p>' +
       '<div class="choices">' +
-        '<button class="choice" data-go="offer"><b>I have an offer to check</b><span>Screenshot or type the pay package. I\'ll tell you if it\'s a No, Maybe, Yes or Excellent.</span></button>' +
-        '<button class="choice" data-go="explore"><b>I don\'t have an offer yet</b><span>Find your break-even number and what a good package looks like for you.</span></button>' +
+        '<button class="choice" data-go="offer"><b>I have a pay package to check</b><span>Screenshot it or type it in. I\'ll tell you if it\'s a No, Maybe, Yes or Excellent.</span></button>' +
+        '<button class="choice" data-go="explore"><b>I don\'t have a pay package yet</b><span>Find your break-even number and what a good package looks like for you.</span></button>' +
         (has ? '<button class="choice" data-go="resume"><b>See my last results</b><span>Pick up where you left off.</span></button>' : '') +
       '</div>' +
     '</section>' +
@@ -912,7 +912,7 @@ function advance() {
 function finish() {
   if (S.mode === 'explore') S.explore = S.cur;
   else {
-    if (!S.cur.label) S.cur.label = (S.cur.city ? cityName(S.cur.city) + ', ' + (S.cur.state || '') : S.cur.state ? stateName(S.cur.state) : 'Offer') + ' offer' + (S.offers.length ? ' ' + (S.offers.length + 1) : '');
+    if (!S.cur.label) S.cur.label = (S.cur.city ? cityName(S.cur.city) + ', ' + (S.cur.state || '') : S.cur.state ? stateName(S.cur.state) : 'Your') + ' pay package' + (S.offers.length ? ' ' + (S.offers.length + 1) : '');
     if (S.editIdx != null && S.offers[S.editIdx]) S.offers[S.editIdx] = S.cur; else S.offers.push(S.cur);
     S.editIdx = null;
   }
@@ -986,7 +986,7 @@ function toBase64(blob) { return new Promise(function (r) { var fr = new FileRea
 
 async function readShot(file) {
   if (!/^image\//.test(file.type)) { note('err', 'That file isn\'t an image. Try a PNG or JPG screenshot.'); return; }
-  note('ok', 'Reading your offer. This takes a few seconds...');
+  note('ok', 'Reading your pay package. This takes a few seconds...');
   try {
     var blob = await shrink(file), data = null;
     if (IN_CLAUDE) {
@@ -1029,7 +1029,7 @@ function applyOffer(d) {
   if (!o.label && (d.city || d.specialty)) o.label = [d.city, d.specialty].filter(Boolean).join(' ');
   renderStep();
   if (!got.length) note('warn', 'I couldn\'t find pay numbers in that image. Type them in below.');
-  else note(rate && (meals || housing || stip) ? 'ok' : 'warn', 'Found the ' + got.join(', ') + '. Double-check them against your offer.' + (!rate ? ' I couldn\'t find the rate for regular hours, so add it below.' : '') + (d.notes ? ' Note: ' + d.notes : ''));
+  else note(rate && (meals || housing || stip) ? 'ok' : 'warn', 'Found the ' + got.join(', ') + '. Double-check them against your pay package.' + (!rate ? ' I couldn\'t find the rate for regular hours, so add it below.' : '') + (d.notes ? ' Note: ' + d.notes : ''));
 }
 
 /* ===== Leads ===== */
@@ -1096,7 +1096,7 @@ function renderResult() {
 function verdictHTML(r, o) {
   var keys = ['no', 'maybe', 'yes', 'excellent'], labels = { no: 'No', maybe: 'Maybe', yes: 'Yes', excellent: 'Excellent' };
   return '<section class="verdict ' + r.verdict.key + '">' +
-    '<span class="eyebrow" style="color:inherit">' + esc(o.label || 'Your offer') + '</span>' +
+    '<span class="eyebrow" style="color:inherit">' + esc(o.label || 'Your pay package') + '</span>' +
     '<span class="word">' + r.verdict.label + '</span>' +
     '<span class="big">' + signed(r.gain) + '<small> / week ' + (r.gain >= 0 ? 'left over' : 'short') + '</small></span>' +
     '<p>' + verdictMath(r) + '</p>' +
@@ -1198,7 +1198,7 @@ function compareHTML() {
 
 function offerHTML() {
   var o = S.offers[S.offers.length - 1];
-  if (!o) { S.view = 'start'; return '<section class="card"><p>No offer yet.</p></section>'; }
+  if (!o) { S.view = 'start'; return '<section class="card"><p>No pay package yet.</p></section>'; }
   var a = answers(o), r = evaluate(a);
   return verdictHTML(r, o) +
     '<section class="card"><div class="kpis">' +
@@ -1244,8 +1244,8 @@ function exploreHTML() {
       '<div class="scroll"><table class="targets"><thead><tr><th>Goal</th><th>Take-home (net)</th><th>Weekly gross (est.)</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<p class="hint" style="font-size:14px;color:var(--muted);margin:10px 0 0">Anything under break even is a No: the contract would cost you money. Break even covers your weekly costs and nothing more. Each row below it adds what you\'d have left to save each week: ' + (goal ? money(goal) + ' for your goal (your ' + money(goalMo()) + ' a month), ' : '') + '$250 for a Yes and $500 for Excellent. ' + grossNote() + ' For a real answer, check an actual pay package.' + (other ? ' These numbers already count your other household income.' : '') + '</p>' +
     '</section>' +
-    '<section class="card"><h3>Got an offer now?</h3><p class="sub" style="margin:4px 0 12px">Check it against your numbers. I\'ll keep everything you already entered.</p>' +
-      '<button class="btn btn-cta" id="checkOffer">Check an Offer</button></section>';
+    '<section class="card"><h3>Got a pay package now?</h3><p class="sub" style="margin:4px 0 12px">Check it against your numbers. I\'ll keep everything you already entered.</p>' +
+      '<button class="btn btn-cta" id="checkOffer">Check a Pay Package</button></section>';
 }
 
 function talkHTML() {
@@ -1270,7 +1270,7 @@ function talkHTML() {
 function actionsHTML() {
   var top = window.top === window.self;
   return '<section class="card"><h3>Keep these numbers</h3><div class="actions" style="margin-top:12px">' +
-    (S.mode !== 'explore' ? '<button class="btn btn-soft" id="another">Compare Another Offer</button>' : '') +
+    (S.mode !== 'explore' ? '<button class="btn btn-soft" id="another">Compare Another Pay Package</button>' : '') +
     '<button class="btn btn-soft" id="copy">Copy Results</button>' +
     (S.lead && !DESK ? '<button class="btn btn-soft" id="mail">' + (S.sentSig === summary() ? 'Resend My PDF' : 'Email Me This PDF') + '</button>' : '<button class="btn btn-soft" id="dl">Save as PDF</button>') +
     (top && DESK ? '<button class="btn btn-soft" id="print">Print</button>' : '') +
